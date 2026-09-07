@@ -1,0 +1,7 @@
+{
+  "name": "Rajat",
+  "role": "Full-Stack Web Developer",
+  "skills": ["React.js", "Vue.js", "JavaScript", "TypeScript", "Node.js"],
+  "bio": "I build responsive UIs and robust backend services.",
+  "projects": "I am currently building an AI-powered portfolio using Next.js and Gemini."
+}
