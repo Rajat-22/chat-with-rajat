@@ -60,7 +60,7 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: queryText,
-          history: updatedMessages,
+          history: messages, // Send prior conversation turns (excluding the turn being asked)
         }),
       });
 
@@ -84,30 +84,38 @@ export default function Home() {
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
-      let accumulatedText = "";
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
         const chunk = decoder.decode(value, { stream: true });
-        accumulatedText += chunk;
-
-        setMessages((prev) => {
-          const newMsgs = [...prev];
-          const lastIdx = newMsgs.length - 1;
-          if (lastIdx >= 0 && newMsgs[lastIdx].role === "ai") {
-            newMsgs[lastIdx] = { ...newMsgs[lastIdx], text: accumulatedText };
-          }
-          return newMsgs;
-        });
+        if (chunk) {
+          setMessages((prev) => {
+            const newMsgs = [...prev];
+            const lastIdx = newMsgs.length - 1;
+            if (lastIdx >= 0 && newMsgs[lastIdx].role === "ai") {
+              newMsgs[lastIdx] = {
+                ...newMsgs[lastIdx],
+                text: newMsgs[lastIdx].text + chunk,
+              };
+            }
+            return newMsgs;
+          });
+        }
       }
-    } catch {
+    } catch (err) {
+      console.error("Chat error:", err);
+      const displayMsg =
+        err instanceof Error && err.message
+          ? err.message
+          : "⚠️ Connection interrupted. Please check your network or try again.";
+
       setMessages((prev) => [
         ...prev,
         {
           role: "ai",
-          text: "⚠️ Something went wrong connecting to the assistant. Please check your Gemini API key in `.env.local`.",
+          text: displayMsg,
         },
       ]);
     } finally {
@@ -130,8 +138,8 @@ export default function Home() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-slate-950 p-3 md:p-6 text-slate-100">
-      <div className="w-full max-w-3xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl flex flex-col h-[700px] overflow-hidden">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-slate-950 p-2 sm:p-4 md:p-6 text-slate-100">
+      <div className="w-full max-w-3xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl flex flex-col h-[92dvh] max-h-[760px] overflow-hidden">
         {/* Header */}
         <div className="p-4 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -167,85 +175,113 @@ export default function Home() {
 
         {/* Message Feed */}
         <div className="flex-1 p-4 md:p-6 overflow-y-auto flex flex-col gap-4">
-          {messages.map((msg, index) => (
-            <div
-              key={index}
-              className={`group relative flex flex-col max-w-[88%] md:max-w-[80%] ${
-                msg.role === "user" ? "self-end items-end" : "self-start items-start"
-              }`}
-            >
+          {messages.map((msg, index) => {
+            // Avoid rendering empty placeholder until first chunk arrives
+            if (msg.role === "ai" && !msg.text) return null;
+
+            const isLatestStreamingMessage =
+              loading && index === messages.length - 1 && msg.role === "ai";
+
+            return (
               <div
-                className={`p-3.5 md:p-4 rounded-2xl text-sm leading-relaxed ${
+                key={index}
+                className={`group relative flex flex-col max-w-[88%] md:max-w-[80%] ${
                   msg.role === "user"
-                    ? "bg-blue-600 text-white rounded-br-xs shadow-md whitespace-pre-wrap"
-                    : "bg-slate-800/90 text-slate-200 rounded-bl-xs border border-slate-700/70 shadow-sm"
+                    ? "self-end items-end"
+                    : "self-start items-start"
                 }`}
               >
-                {msg.role === "user" ? (
-                  msg.text
-                ) : (
-                  <div className="prose prose-invert max-w-none text-sm space-y-2">
-                    <ReactMarkdown
-                      components={{
-                        a: ({ ...props }) => (
-                          <a
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-400 hover:text-blue-300 underline font-medium transition-colors"
-                            {...props}
-                          />
-                        ),
-                        ul: ({ ...props }) => (
-                          <ul className="list-disc pl-5 space-y-1 my-1.5" {...props} />
-                        ),
-                        ol: ({ ...props }) => (
-                          <ol className="list-decimal pl-5 space-y-1 my-1.5" {...props} />
-                        ),
-                        li: ({ ...props }) => (
-                          <li className="leading-relaxed" {...props} />
-                        ),
-                        strong: ({ ...props }) => (
-                          <strong className="font-semibold text-white" {...props} />
-                        ),
-                        code: ({ ...props }) => (
-                          <code
-                            className="bg-slate-950 text-blue-300 px-1.5 py-0.5 rounded text-xs font-mono border border-slate-800"
-                            {...props}
-                          />
-                        ),
-                        p: ({ ...props }) => (
-                          <p className="mb-2 last:mb-0 leading-relaxed" {...props} />
-                        ),
-                      }}
-                    >
-                      {msg.text}
-                    </ReactMarkdown>
-                  </div>
+                <div
+                  className={`p-3.5 md:p-4 rounded-2xl text-sm leading-relaxed ${
+                    msg.role === "user"
+                      ? "bg-blue-600 text-white rounded-br-xs shadow-md whitespace-pre-wrap"
+                      : "bg-slate-800/90 text-slate-200 rounded-bl-xs border border-slate-700/70 shadow-sm"
+                  }`}
+                >
+                  {msg.role === "user" ? (
+                    msg.text
+                  ) : (
+                    <div className="prose prose-invert max-w-none text-sm space-y-2">
+                      <ReactMarkdown
+                        components={{
+                          a: ({ ...props }) => (
+                            <a
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-400 hover:text-blue-300 underline font-medium transition-colors"
+                              {...props}
+                            />
+                          ),
+                          ul: ({ ...props }) => (
+                            <ul
+                              className="list-disc pl-5 space-y-1 my-1.5"
+                              {...props}
+                            />
+                          ),
+                          ol: ({ ...props }) => (
+                            <ol
+                              className="list-decimal pl-5 space-y-1 my-1.5"
+                              {...props}
+                            />
+                          ),
+                          li: ({ ...props }) => (
+                            <li className="leading-relaxed" {...props} />
+                          ),
+                          strong: ({ ...props }) => (
+                            <strong
+                              className="font-semibold text-white"
+                              {...props}
+                            />
+                          ),
+                          code: ({ ...props }) => (
+                            <code
+                              className="bg-slate-950 text-blue-300 px-1.5 py-0.5 rounded text-xs font-mono border border-slate-800"
+                              {...props}
+                            />
+                          ),
+                          p: ({ ...props }) => (
+                            <p
+                              className="mb-2 last:mb-0 leading-relaxed"
+                              {...props}
+                            />
+                          ),
+                        }}
+                      >
+                        {msg.text}
+                      </ReactMarkdown>
+                      {isLatestStreamingMessage && (
+                        <span className="inline-block w-1.5 h-3.5 ml-1 bg-blue-400 animate-pulse align-middle rounded-xs" />
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Copy message button for AI replies */}
+                {msg.role === "ai" && msg.text && !loading && (
+                  <button
+                    type="button"
+                    onClick={() => copyToClipboard(msg.text, index)}
+                    className="mt-1 text-[11px] text-slate-500 hover:text-slate-300 transition-colors opacity-0 group-hover:opacity-100 flex items-center gap-1 cursor-pointer self-start pl-1"
+                  >
+                    {copiedIndex === index ? "✓ Copied" : "Copy text"}
+                  </button>
                 )}
               </div>
+            );
+          })}
 
-              {/* Copy message button for AI replies */}
-              {msg.role === "ai" && (
-                <button
-                  type="button"
-                  onClick={() => copyToClipboard(msg.text, index)}
-                  className="mt-1 text-[11px] text-slate-500 hover:text-slate-300 transition-colors opacity-0 group-hover:opacity-100 flex items-center gap-1 cursor-pointer self-start pl-1"
-                >
-                  {copiedIndex === index ? "✓ Copied" : "Copy text"}
-                </button>
-              )}
-            </div>
-          ))}
-
-          {loading && (
-            <div className="flex items-center gap-2.5 text-slate-400 text-xs self-start bg-slate-800/80 border border-slate-700/60 px-3.5 py-2.5 rounded-2xl shadow-sm">
-              <span className="flex h-2 w-2 relative">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500" />
-              </span>
-              Rajat&apos;s AI is thinking...
-            </div>
-          )}
+          {loading &&
+            (!messages.length ||
+              messages[messages.length - 1]?.role !== "ai" ||
+              !messages[messages.length - 1]?.text) && (
+              <div className="flex items-center gap-2.5 text-slate-400 text-xs self-start bg-slate-800/80 border border-slate-700/60 px-3.5 py-2.5 rounded-2xl shadow-sm">
+                <span className="flex h-2 w-2 relative">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500" />
+                </span>
+                Rajat&apos;s AI is thinking...
+              </div>
+            )}
           <div ref={messagesEndRef} />
         </div>
 
@@ -267,22 +303,35 @@ export default function Home() {
         )}
 
         {/* Input Form */}
-        <form onSubmit={handleFormSubmit} className="p-3.5 border-t border-slate-800 bg-slate-900/90 flex gap-2">
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask about Rajat's experience, skills, or projects..."
-            disabled={loading}
-            className="flex-1 px-4 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm text-slate-100 placeholder-slate-500 disabled:opacity-50 transition-all"
-          />
-          <button
-            type="submit"
-            disabled={loading || !input.trim()}
-            className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-5 py-2.5 rounded-xl transition-all disabled:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed cursor-pointer shadow-sm hover:shadow"
-          >
-            Send
-          </button>
+        <form
+          onSubmit={handleFormSubmit}
+          className="p-3 sm:p-3.5 border-t border-slate-800 bg-slate-900/90 flex flex-col gap-1.5"
+        >
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={input}
+              maxLength={500}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Ask about Rajat's experience, skills, or projects..."
+              disabled={loading}
+              className="flex-1 px-3.5 sm:px-4 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm text-slate-100 placeholder-slate-500 disabled:opacity-50 transition-all"
+            />
+            <button
+              type="submit"
+              disabled={loading || !input.trim()}
+              className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 sm:px-5 py-2.5 rounded-xl transition-all disabled:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed cursor-pointer shadow-sm hover:shadow shrink-0"
+            >
+              Send
+            </button>
+          </div>
+          {input.length > 200 && (
+            <div className="flex justify-end px-1">
+              <span className="text-[10px] text-slate-500">
+                {input.length}/500
+              </span>
+            </div>
+          )}
         </form>
       </div>
     </div>
