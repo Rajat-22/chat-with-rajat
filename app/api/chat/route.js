@@ -2,6 +2,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
+import { logInteraction, sendNotification } from '@/lib/notify';
 
 export const runtime = 'nodejs';
 
@@ -51,6 +52,54 @@ export async function POST(req) {
       portfolioData = fs.readFileSync(filePath, 'utf8');
     }
 
+    // Auto-detect and save recruiter leads if an email is provided in the message
+    const emailMatch = message.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+    if (emailMatch) {
+      try {
+        const leadsDir = path.join(process.cwd(), 'data');
+        if (!fs.existsSync(leadsDir)) {
+          fs.mkdirSync(leadsDir, { recursive: true });
+        }
+        const leadsFile = path.join(leadsDir, 'leads.json');
+        let leads = [];
+        if (fs.existsSync(leadsFile)) {
+          try {
+            leads = JSON.parse(fs.readFileSync(leadsFile, 'utf8'));
+          } catch {
+            leads = [];
+          }
+        }
+        leads.push({
+          timestamp: new Date().toISOString(),
+          email: emailMatch[0],
+          rawMessage: message,
+        });
+        fs.writeFileSync(leadsFile, JSON.stringify(leads, null, 2), 'utf8');
+
+        // Extract prior user questions to provide full context in notification
+        const priorQuestions = Array.isArray(history)
+          ? history.filter((h) => h.role === 'user').map((h) => h.text)
+          : [];
+
+        // Trigger real-time alert (WhatsApp via CallMeBot and/or Email via Resend)
+        sendNotification({
+          title: 'Recruiter Contact Detected in Chat!',
+          contact: emailMatch[0],
+          message,
+          recentQuestions: [...priorQuestions, message],
+        }).catch((err) => console.error('Notification dispatch failed:', err));
+      } catch (leadErr) {
+        console.error('Lead auto-save error:', leadErr);
+      }
+    }
+
+    // Always log the user question for analytics & review
+    logInteraction({
+      timestamp: new Date().toISOString(),
+      userMessage: message,
+      recruiterEmail: emailMatch ? emailMatch[0] : undefined,
+    });
+
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({
       model: 'gemini-3.6-flash',
@@ -63,6 +112,7 @@ Guidelines:
 - Represent Rajat professionally, warmly, and authentically.
 - Speak in the third person or first person plural on behalf of Rajat (e.g., "Rajat has experience with...", "He builds...").
 - Format responses cleanly with markdown (bullet points, bold text for key technologies, clear sections).
+- If the user/recruiter provides an email or contact info, warmly thank them, confirm that their note has been recorded, and reassure them that Rajat will get in touch promptly.
 - If the user asks for something not mentioned in the portfolio data, politely state that Rajat hasn't listed that yet, then suggest relevant areas you can answer (e.g., his projects, skills, or contact info).
 - Keep replies concise, helpful, and easy to read.`,
     });
