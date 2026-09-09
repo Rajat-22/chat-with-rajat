@@ -8,11 +8,11 @@ interface Message {
 }
 
 const SUGGESTED_QUESTIONS = [
-  "🏢 Tell me about your role at Bold Technology",
-  "💼 What did you do at Sopra Steria?",
-  "🚀 Show me your top projects & demos",
-  "🛠️ What is your core tech stack?",
-  "📫 How can I contact Rajat?",
+  "🏢 Role at Bold Technology",
+  "💼 Experience at Sopra Steria",
+  "🚀 Top projects & live demos",
+  "🛠️ Core tech stack",
+  "🤝 Leave a message / Hire Rajat",
 ];
 
 export default function Home() {
@@ -25,6 +25,11 @@ export default function Home() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  const [isContactModalOpen, setIsContactModalOpen] = useState(false);
+  const [leadEmail, setLeadEmail] = useState("");
+  const [leadName, setLeadName] = useState("");
+  const [leadMessage, setLeadMessage] = useState("");
+  const [leadSubmitting, setLeadSubmitting] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -34,6 +39,43 @@ export default function Home() {
   useEffect(() => {
     scrollToBottom();
   }, [messages, loading]);
+
+  const handleLeadSubmit = async (e: React.SyntheticEvent) => {
+    e.preventDefault();
+    if (!leadEmail.trim() || leadSubmitting) return;
+
+    setLeadSubmitting(true);
+    try {
+      const res = await fetch("/api/lead", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: leadEmail,
+          name: leadName,
+          message: leadMessage,
+        }),
+      });
+
+      if (!res.ok) throw new Error("Failed to send note");
+
+      setIsContactModalOpen(false);
+      setLeadEmail("");
+      setLeadName("");
+      setLeadMessage("");
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "ai",
+          text: `🎉 **Thank you, ${leadName || "there"}!** Your message has been directly recorded for Rajat. He will review your note and contact you at **${leadEmail}** shortly!`,
+        },
+      ]);
+    } catch {
+      alert("Could not record note. You can also reach Rajat directly at rajatsharma221098@gmail.com.");
+    } finally {
+      setLeadSubmitting(false);
+    }
+  };
 
   const copyToClipboard = async (text: string, idx: number) => {
     try {
@@ -163,14 +205,23 @@ export default function Home() {
               </p>
             </div>
           </div>
-          <button
-            onClick={clearChat}
-            type="button"
-            className="text-xs text-slate-400 hover:text-slate-200 px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-750 border border-slate-700 transition-colors cursor-pointer"
-            title="Reset conversation"
-          >
-            Clear Chat
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsContactModalOpen(true)}
+              type="button"
+              className="text-xs bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-medium px-3 py-1.5 rounded-lg shadow-sm transition-all cursor-pointer"
+            >
+              Hire / Contact
+            </button>
+            <button
+              onClick={clearChat}
+              type="button"
+              className="text-xs text-slate-400 hover:text-slate-200 px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-750 border border-slate-700 transition-colors cursor-pointer"
+              title="Reset conversation"
+            >
+              Clear
+            </button>
+          </div>
         </div>
 
         {/* Message Feed */}
@@ -292,7 +343,13 @@ export default function Home() {
               <button
                 key={idx}
                 type="button"
-                onClick={() => sendQuery(q)}
+                onClick={() => {
+                  if (q.includes("Leave a message")) {
+                    setIsContactModalOpen(true);
+                  } else {
+                    sendQuery(q);
+                  }
+                }}
                 disabled={loading}
                 className="whitespace-nowrap text-xs bg-slate-800 hover:bg-slate-750 text-slate-300 hover:text-white px-3 py-1.5 rounded-full border border-slate-700/80 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-xs"
               >
@@ -334,6 +391,92 @@ export default function Home() {
           )}
         </form>
       </div>
+
+      {/* Recruiter / Visitor Contact Modal */}
+      {isContactModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl relative">
+            <button
+              onClick={() => setIsContactModalOpen(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors text-lg cursor-pointer"
+            >
+              ✕
+            </button>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-blue-600/20 text-blue-400 border border-blue-500/30 flex items-center justify-center font-bold text-lg">
+                ✉️
+              </div>
+              <div>
+                <h3 className="font-semibold text-slate-100 text-base">
+                  Contact / Hire Rajat
+                </h3>
+                <p className="text-xs text-slate-400">
+                  Leave a note and Rajat will reach back directly
+                </p>
+              </div>
+            </div>
+
+            <form onSubmit={handleLeadSubmit} className="flex flex-col gap-3.5">
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">
+                  Your Name
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Sarah Jenkins (Tech Recruiter)"
+                  value={leadName}
+                  onChange={(e) => setLeadName(e.target.value)}
+                  className="w-full px-3.5 py-2 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-slate-100 placeholder-slate-500 outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">
+                  Your Email <span className="text-rose-400">*</span>
+                </label>
+                <input
+                  type="email"
+                  required
+                  placeholder="name@company.com"
+                  value={leadEmail}
+                  onChange={(e) => setLeadEmail(e.target.value)}
+                  className="w-full px-3.5 py-2 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-slate-100 placeholder-slate-500 outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">
+                  Note / Opportunity Details
+                </label>
+                <textarea
+                  rows={3}
+                  placeholder="Tell Rajat about your team, role, or project..."
+                  value={leadMessage}
+                  onChange={(e) => setLeadMessage(e.target.value)}
+                  className="w-full px-3.5 py-2 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-slate-100 placeholder-slate-500 outline-none focus:border-blue-500 resize-none"
+                />
+              </div>
+
+              <div className="flex gap-2.5 mt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsContactModalOpen(false)}
+                  className="flex-1 px-4 py-2 bg-slate-800 hover:bg-slate-750 text-slate-300 text-sm font-medium rounded-xl transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={leadSubmitting || !leadEmail.trim()}
+                  className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-xl transition-colors disabled:opacity-50 cursor-pointer shadow-sm"
+                >
+                  {leadSubmitting ? "Sending..." : "Send Note"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
