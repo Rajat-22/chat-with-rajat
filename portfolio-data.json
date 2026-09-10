@@ -2,7 +2,7 @@
     "personal_info": {
         "name": "Rajat Sharma",
         "role": "Software Engineer & Full-Stack Developer",
-        "company": "Bold Technology",
+        "company": "BOLD Technology Systems Pvt. Ltd",
         "location": "Greater Noida, India",
         "tagline": "Passionate about crafting intuitive, high-performance, and visually appealing web applications.",
         "email": "rajatsharma221098@gmail.com",
@@ -11,14 +11,14 @@
         "availability": "Open to work opportunities that align with skills and interests"
     },
     "about": {
-        "summary": "Hi, I'm Rajat Sharma — a Full-Stack Developer passionate about crafting intuitive, high-performance, and visually appealing web applications. I specialize in building responsive and scalable user interfaces using Vue, React, Next.js, Bootstrap, and TailwindCSS. With a strong eye for design and a love for clean code, I enjoy turning complex problems into simple, elegant solutions. Beyond coding, I'm always exploring new frontend trends, optimizing performance, and experimenting with modern web tools to deliver exceptional user experiences.",
-        "goal": "To create digital experiences that are not only functional but also delightful for users.",
-        "years_of_experience": "Software Engineer at Bold Technology (Feb 2026 - Present) & ex-Senior Software Engineer at Sopra Steria (July 2021 - Jan 2026)",
+        "summary": "Full-Stack Developer focused on building modern, scalable, and user-friendly web applications with React, Vue.js, JavaScript, and TypeScript. Passionate about clean code, performance, and creating seamless user experiences while exploring modern technologies and AI.",
+        "goal": "To build scalable digital products that combine great user experience, performance, and intelligent technology.",
+        "years_of_experience": "Software Engineer at BOLD Technology Systems Pvt. Ltd (Feb 2026 - Present) & ex-Senior Software Engineer at Sopra Steria (July 2021 - Jan 2026)",
         "interests": [
-            "Modern Web Frameworks (Next.js, React, Vue.js)",
-            "Interactive Data Visualizations & Graph Networks (yFiles, D3.js, Neo4j)",
-            "Generative AI & LLM Integration (Google Gemini)",
-            "Web Performance Optimization & Clean Architecture"
+            "Modern Web Development (React, Vue.js, TypeScript)",
+            "AI & LLM Integration",
+            "Web Performance & Clean Architecture",
+            "Interactive UI & Data Visualization"
         ]
     },
     "skills": {
@@ -83,7 +83,8 @@
                 "Bootstrap",
                 "Cloudinary"
             ],
-            "description": "A Vue.js-based e-commerce platform designed for showcasing and selling watches. Features dynamic product catalogs, search and filter functionality, and responsive UI design optimized for mobile and desktop. Leverages component-based architecture, Vue Router, and Pinia state management for seamless navigation and real-time updates."
+            "description": "A Vue.js-based e-commerce platform designed for showcasing and selling watches. Features dynamic product catalogs, search and filter functionality, and responsive UI design optimized for mobile and desktop. Leverages component-based architecture, Vue Router, and Pinia state management for seamless navigation and real-time updates.",
+            "live_url": "https://tick-tock-store.vercel.app/"
         },
         {
             "name": "Tap 'n' Play",
@@ -93,7 +94,8 @@
                 "JavaScript",
                 "CSS"
             ],
-            "description": "A fun mini-games project built with React, featuring classic games like Tic Tac Toe, Quiz, and Play & Pause, showcasing interactive UI and state management."
+            "description": "A fun mini-games project built with React, featuring classic games like Tic Tac Toe, Quiz, and Play & Pause, showcasing interactive UI and state management.",
+            "live_url": "https://tic-tac-toe-two-self-19.vercel.app/tic-tac-toe"
         },
         {
             "name": "Personal Portfolio",
@@ -119,12 +121,23 @@
                 "Google Generative AI (Gemini 1.5 Flash)"
             ],
             "description": "An AI-powered conversational portfolio assistant that answers visitor and recruiter questions about Rajat's career, technical skills, and experience at Sopra Steria in real time."
+        },
+        {
+            "name": "The-Byte-Bitez",
+            "role": "Full Stack Developer",
+            "technologies": [
+                "React",
+                "JavaScript",
+                "CSS"
+            ],
+            "description": "A smooth and responsive food ordering experience designed to make ordering quick and effortless. Explore a variety of dishes, add your favorites to the cart, and place your order with just a few simple steps.",
+            "live_url": "https://byte-bitez.vercel.app/"
         }
     ],
     "experience": [
         {
             "role": "Software Engineer",
-            "company": "Bold Technology",
+            "company": "BOLD Technology Systems Pvt. Ltd",
             "period": "Feb 2026 - Present",
             "location": "Greater Noida, India",
             "description": "Leading full-stack engineering initiatives, developing complex web applications with modern frontend frameworks (React, Vue, Next.js), integrating backend APIs, and delivering high-performance UI solutions."
@@ -160,7 +173,7 @@
     "faqs": [
         {
             "question": "Where does Rajat currently work?",
-            "answer": "Rajat is currently a Software Engineer at Bold Technology (since Feb 2026). Prior to this, he was a Senior Software Engineer at Sopra Steria from July 2021 to Jan 2026."
+            "answer": "Rajat is currently a Software Engineer at BOLD Technology Systems Pvt. Ltd (since Feb 2026). Prior to this, he was a Senior Software Engineer at Sopra Steria from July 2021 to Jan 2026."
         },
         {
             "question": "What are Rajat's core skills?",
