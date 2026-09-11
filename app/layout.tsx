@@ -13,8 +13,43 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Chat with Rajat - AI Portfolio Assistant",
-  description: "Chat with Rajat's AI portfolio assistant to learn about his skills, experience, and projects.",
+  metadataBase: new URL("https://chat-with-rajat.vercel.app"),
+  title: "Chat with Rajat Sharma | AI Portfolio Assistant",
+  description:
+    "Interactive conversational AI assistant representing Rajat Sharma — Software Engineer at Bold Technology (ex-Sopra Steria). Explore projects, tech stack, and career experience in real time.",
+  keywords: [
+    "Rajat Sharma",
+    "Portfolio",
+    "Full-Stack Developer",
+    "Software Engineer",
+    "Next.js",
+    "React",
+    "Vue.js",
+    "Gemini AI",
+    "AI Portfolio",
+  ],
+  authors: [{ name: "Rajat Sharma", url: "https://rajatsharma-portfolio.vercel.app/" }],
+  creator: "Rajat Sharma",
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: "https://chat-with-rajat.vercel.app",
+    title: "Chat with Rajat Sharma | AI Portfolio Assistant",
+    description:
+      "Interactive conversational AI assistant representing Rajat Sharma. Ask questions about his background, projects, and skills in real time.",
+    siteName: "Chat with Rajat",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Chat with Rajat Sharma | AI Portfolio Assistant",
+    description:
+      "Chat in real time with Rajat Sharma's AI portfolio assistant powered by Gemini and Next.js.",
+    creator: "@rajatsharma",
+  },
+  icons: {
+    icon: "/icon.svg",
+    shortcut: "/icon.svg",
+  },
 };
 
 export default function RootLayout({

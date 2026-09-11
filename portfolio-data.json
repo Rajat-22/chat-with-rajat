@@ -1,7 +1,191 @@
 {
-  "name": "Rajat",
-  "role": "Full-Stack Web Developer",
-  "skills": ["React.js", "Vue.js", "JavaScript", "TypeScript", "Node.js"],
-  "bio": "I build responsive UIs and robust backend services.",
-  "projects": "I am currently building an AI-powered portfolio using Next.js and Gemini."
+    "personal_info": {
+        "name": "Rajat Sharma",
+        "role": "Software Engineer & Full-Stack Developer",
+        "company": "BOLD Technology Systems Pvt. Ltd",
+        "location": "Greater Noida, India",
+        "tagline": "Passionate about crafting intuitive, high-performance, and visually appealing web applications.",
+        "email": "rajatsharma221098@gmail.com",
+        "phone": "+91-9873957498 / +91-9454276383",
+        "portfolio": "https://rajatsharma-portfolio.vercel.app/",
+        "availability": "Open to work opportunities that align with skills and interests"
+    },
+    "about": {
+        "summary": "Full-Stack Developer focused on building modern, scalable, and user-friendly web applications with React, Vue.js, JavaScript, and TypeScript. Passionate about clean code, performance, and creating seamless user experiences while exploring modern technologies and AI.",
+        "goal": "To build scalable digital products that combine great user experience, performance, and intelligent technology.",
+        "years_of_experience": "Software Engineer at BOLD Technology Systems Pvt. Ltd (Feb 2026 - Present) & ex-Senior Software Engineer at Sopra Steria (July 2021 - Jan 2026)",
+        "interests": [
+            "Modern Web Development (React, Vue.js, TypeScript)",
+            "AI & LLM Integration",
+            "Web Performance & Clean Architecture",
+            "Interactive UI & Data Visualization"
+        ]
+    },
+    "skills": {
+        "frontend": [
+            "React.js",
+            "Vue.js (Vue 3, Pinia, Vue Router)",
+            "Next.js",
+            "TypeScript",
+            "JavaScript (ES6+)",
+            "TailwindCSS",
+            "Bootstrap",
+            "VuetifyJS",
+            "MaterialUI",
+            "HTML5",
+            "CSS3",
+            "Responsive Design",
+            "Web Performance"
+        ],
+        "backend": [
+            "Node.js",
+            "Next.js API Routes",
+            "REST APIs"
+        ],
+        "visualization_and_graphs": [
+            "yFiles for HTML",
+            "D3.js",
+            "Neo4j"
+        ],
+        "databases_and_cloud": [
+            "MongoDB",
+            "Firebase",
+            "Cloudinary"
+        ],
+        "design_and_tools": [
+            "Git & GitHub",
+            "Figma",
+            "Postman",
+            "Vercel"
+        ]
+    },
+    "projects": [
+        {
+            "name": "Intelligent Network Analyzer",
+            "role": "Full Stack Developer",
+            "technologies": [
+                "React",
+                "TypeScript",
+                "Neo4j",
+                "MongoDB",
+                "yFiles for HTML",
+                "D3.js"
+            ],
+            "description": "A platform for telecom operators to monitor network health, analyze traffic data, and visualize system performance with a drag-and-drop interface."
+        },
+        {
+            "name": "Tick-Tock Store",
+            "role": "Full Stack Developer",
+            "technologies": [
+                "Vue 3",
+                "JavaScript",
+                "Firebase",
+                "Bootstrap",
+                "Cloudinary"
+            ],
+            "description": "A Vue.js-based e-commerce platform designed for showcasing and selling watches. Features dynamic product catalogs, search and filter functionality, and responsive UI design optimized for mobile and desktop. Leverages component-based architecture, Vue Router, and Pinia state management for seamless navigation and real-time updates.",
+            "live_url": "https://tick-tock-store.vercel.app/"
+        },
+        {
+            "name": "Tap 'n' Play",
+            "role": "Full Stack Developer",
+            "technologies": [
+                "React",
+                "JavaScript",
+                "CSS"
+            ],
+            "description": "A fun mini-games project built with React, featuring classic games like Tic Tac Toe, Quiz, and Play & Pause, showcasing interactive UI and state management.",
+            "live_url": "https://tic-tac-toe-two-self-19.vercel.app/tic-tac-toe"
+        },
+        {
+            "name": "Personal Portfolio",
+            "role": "Full Stack Developer",
+            "technologies": [
+                "React",
+                "JavaScript",
+                "Next.js",
+                "Bootstrap",
+                "HTML & CSS"
+            ],
+            "description": "A responsive and interactive personal portfolio website built using React/Next.js to highlight professional skills, projects, and achievements. Designed with modern UI/UX principles, fast performance optimization, and SEO-friendly architecture.",
+            "live_url": "https://rajatsharma-portfolio.vercel.app/"
+        },
+        {
+            "name": "Chat with Rajat (AI Portfolio Assistant)",
+            "role": "Full Stack Developer",
+            "technologies": [
+                "Next.js 16",
+                "React 19",
+                "TypeScript",
+                "Tailwind CSS v4",
+                "Google Generative AI (Gemini 1.5 Flash)"
+            ],
+            "description": "An AI-powered conversational portfolio assistant that answers visitor and recruiter questions about Rajat's career, technical skills, and experience at Sopra Steria in real time."
+        },
+        {
+            "name": "The-Byte-Bitez",
+            "role": "Full Stack Developer",
+            "technologies": [
+                "React",
+                "JavaScript",
+                "CSS"
+            ],
+            "description": "A smooth and responsive food ordering experience designed to make ordering quick and effortless. Explore a variety of dishes, add your favorites to the cart, and place your order with just a few simple steps.",
+            "live_url": "https://byte-bitez.vercel.app/"
+        }
+    ],
+    "experience": [
+        {
+            "role": "Software Engineer",
+            "company": "BOLD Technology Systems Pvt. Ltd",
+            "period": "Feb 2026 - Present",
+            "location": "Greater Noida, India",
+            "description": "Leading full-stack engineering initiatives, developing complex web applications with modern frontend frameworks (React, Vue, Next.js), integrating backend APIs, and delivering high-performance UI solutions."
+        },
+        {
+            "role": "Senior Software Engineer",
+            "company": "Sopra Steria",
+            "period": "July 2021 - Jan 2026",
+            "location": "Greater Noida, India",
+            "description": "Leading full-stack engineering initiatives, developing complex web applications with modern frontend frameworks (React, Vue, Next.js), integrating backend APIs, and delivering high-performance UI solutions."
+        }
+    ],
+    "education": [
+        {
+            "degree": "Bachelor Degree (B.Tech in Computer Science & Engineering)",
+            "institution": "Dr. A.P.J. Abdul Kalam Technical University, U.P., India",
+            "period": "2017 - 2021",
+            "score": "8.06 CGPA (≈ 73.1%)"
+        },
+        {
+            "degree": "Higher Secondary Certificate (12th)",
+            "institution": "Subhash Academy (CBSE)",
+            "period": "2014 - 2016",
+            "score": "76.6%"
+        },
+        {
+            "degree": "Secondary School Certificate (10th)",
+            "institution": "Subhash Academy (CBSE)",
+            "period": "2012 - 2014",
+            "score": "8.8 CGPA (≈ 83.6%)"
+        }
+    ],
+    "faqs": [
+        {
+            "question": "Where does Rajat currently work?",
+            "answer": "Rajat is currently a Software Engineer at BOLD Technology Systems Pvt. Ltd (since Feb 2026). Prior to this, he was a Senior Software Engineer at Sopra Steria from July 2021 to Jan 2026."
+        },
+        {
+            "question": "What are Rajat's core skills?",
+            "answer": "Rajat specializes in React.js, Vue.js (Vue 3, Pinia), Next.js, TypeScript, JavaScript (ES6+), Node.js, TailwindCSS, Bootstrap, and advanced data visualization using D3.js and yFiles for HTML."
+        },
+        {
+            "question": "How can I contact Rajat?",
+            "answer": "You can reach Rajat via email at rajatsharma221098@gmail.com, by phone at +91-9873957498 or +91-9454276383, or check his live portfolio at https://rajatsharma-portfolio.vercel.app/."
+        },
+        {
+            "question": "Is Rajat open to new opportunities?",
+            "answer": "Yes, Rajat is open to work opportunities that align with his skills and interests in modern web engineering and full-stack development."
+        }
+    ]
 }
