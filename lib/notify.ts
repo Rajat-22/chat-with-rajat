@@ -40,7 +40,7 @@ export function logInteraction(entry: ChatInteraction) {
 }
 
 /**
- * Send real-time notification across configured channels (WhatsApp, Email, Webhook)
+ * Send real-time notification across configured channels (Email via Resend)
  */
 export async function sendNotification({
   title,
@@ -55,26 +55,7 @@ export async function sendNotification({
 }) {
   const time = new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
 
-  // 1. WhatsApp Notification via CallMeBot (Free, instant personal WhatsApp notification)
-  const waPhone = process.env.WHATSAPP_PHONE; // e.g. 919873957498
-  const waApiKey = process.env.WHATSAPP_API_KEY; // Free key from callmebot
-  if (waPhone && waApiKey) {
-    try {
-      const waText = encodeURIComponent(
-        `🚨 *${title}*\n\n👤 *From:* ${contact || "Anonymous Visitor"}\n📝 *Note:* ${message}\n⏰ *Time:* ${time}${
-          recentQuestions.length
-            ? `\n\n❓ *Questions asked:*\n${recentQuestions.map((q) => `• ${q}`).join("\n")}`
-            : ""
-        }`,
-      );
-      const waUrl = `https://api.callmebot.com/whatsapp.php?phone=${waPhone}&text=${waText}&apikey=${waApiKey}`;
-      await fetch(waUrl, { method: "GET" });
-    } catch (waErr) {
-      console.error("WhatsApp notification error:", waErr);
-    }
-  }
-
-  // 2. Email Notification via Resend (Free 100 emails/day)
+  // Email Notification via Resend (Free 100 emails/day)
   const resendApiKey = process.env.RESEND_API_KEY;
   const notifyEmail =
     process.env.NOTIFICATION_EMAIL || "rajatsharma221098@gmail.com";
