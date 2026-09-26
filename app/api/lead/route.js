@@ -40,7 +40,7 @@ export async function POST(req) {
     leads.push(lead);
     fs.writeFileSync(leadsFile, JSON.stringify(leads, null, 2), "utf8");
 
-    // Trigger notification (WhatsApp via CallMeBot and/or Email via Resend)
+    // Trigger notification (Email via Resend)
     await sendNotification({
       title: "New Recruiter Lead on Chat with Rajat!",
       contact: `${lead.name} <${lead.email}>`,

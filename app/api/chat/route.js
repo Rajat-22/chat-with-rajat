@@ -81,7 +81,7 @@ export async function POST(req) {
           ? history.filter((h) => h.role === 'user').map((h) => h.text)
           : [];
 
-        // Trigger real-time alert (WhatsApp via CallMeBot and/or Email via Resend)
+        // Trigger real-time alert (Email via Resend)
         sendNotification({
           title: 'Recruiter Contact Detected in Chat!',
           contact: emailMatch[0],
