@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import fs from "fs";
-import path from "path";
 import { sendNotification } from "@/lib/notify";
+import { saveLead } from "@/lib/store";
+import { checkRateLimit, LEAD_RATE_LIMIT } from "@/lib/rate-limit";
 
 // Mirrors the chat route's guards so the endpoint is not a free-form sink.
 const MAX_BODY_BYTES = 8 * 1024;
@@ -11,6 +11,25 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 export async function POST(req) {
   try {
+    // P0-04: this endpoint sends an email, so it is rate limited per IP.
+    const rateLimit = checkRateLimit(req, LEAD_RATE_LIMIT, "lead");
+    if (rateLimit.limited) {
+      return NextResponse.json(
+        {
+          error:
+            "Too many notes sent from this network. Please wait a few minutes and try again.",
+        },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(rateLimit.retryAfterSeconds),
+            "X-RateLimit-Limit": String(rateLimit.limit),
+            "X-RateLimit-Remaining": String(rateLimit.remaining),
+          },
+        },
+      );
+    }
+
     const contentType = req.headers.get("content-type") || "";
     if (!contentType.toLowerCase().includes("application/json")) {
       return NextResponse.json(
@@ -73,24 +92,19 @@ export async function POST(req) {
       message: trimmedMessage,
     };
 
-    // Save lead to local JSON file
-    const leadsDir = path.join(process.cwd(), "data");
-    if (!fs.existsSync(leadsDir)) {
-      fs.mkdirSync(leadsDir, { recursive: true });
+    // P0-01: write to the durable store. In production without a configured
+    // store this fails loudly instead of silently dropping the lead.
+    const persisted = await saveLead(lead);
+    if (!persisted.ok) {
+      console.error("Lead persistence failed:", persisted.error);
+      return NextResponse.json(
+        {
+          error:
+            "Could not record your note right now. Please email Rajat directly at rajatsharma221098@gmail.com.",
+        },
+        { status: 503 },
+      );
     }
-
-    const leadsFile = path.join(leadsDir, "leads.json");
-    let leads = [];
-    if (fs.existsSync(leadsFile)) {
-      try {
-        leads = JSON.parse(fs.readFileSync(leadsFile, "utf8"));
-      } catch {
-        leads = [];
-      }
-    }
-
-    leads.push(lead);
-    fs.writeFileSync(leadsFile, JSON.stringify(leads, null, 2), "utf8");
 
     // Trigger notification (Email via Resend) and report the real outcome, so we
     // never thank a recruiter for a note that was silently discarded (P0-02).
@@ -116,6 +130,7 @@ export async function POST(req) {
 
     return NextResponse.json({
       success: true,
+      stored: persisted.store,
       channel: notification.channel,
       message:
         "Thank you! Rajat has received your note and will get back to you shortly.",

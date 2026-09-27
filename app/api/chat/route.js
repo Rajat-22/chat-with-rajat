@@ -1,13 +1,34 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { NextResponse } from 'next/server';
+import { NextResponse, after } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 import { logInteraction, sendNotification } from '@/lib/notify';
+import { saveLead } from '@/lib/store';
+import { checkRateLimit, CHAT_RATE_LIMIT } from '@/lib/rate-limit';
 
 export const runtime = 'nodejs';
 
 export async function POST(req) {
   try {
+    // P0-04: this endpoint spends Gemini quota, so it is rate limited per IP.
+    const rateLimit = checkRateLimit(req, CHAT_RATE_LIMIT, 'chat');
+    if (rateLimit.limited) {
+      return NextResponse.json(
+        {
+          error:
+            'Too many questions from this network. Please wait a couple of minutes and try again.',
+        },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(rateLimit.retryAfterSeconds),
+            'X-RateLimit-Limit': String(rateLimit.limit),
+            'X-RateLimit-Remaining': String(rateLimit.remaining),
+          },
+        },
+      );
+    }
+
     const { message, history } = await req.json();
 
     if (!message || typeof message !== 'string' || !message.trim()) {
@@ -52,64 +73,53 @@ export async function POST(req) {
       portfolioData = fs.readFileSync(filePath, 'utf8');
     }
 
-    // Auto-detect and save recruiter leads if an email is provided in the message
+    // Auto-detect and save recruiter leads if an email is provided in the message.
+    // Both the store write and the notification are scheduled with `after()` so
+    // they never delay the model response, and both report real outcomes instead
+    // of failing silently (P0-01 / P0-02).
     const emailMatch = message.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
     if (emailMatch) {
-      try {
-        const leadsDir = path.join(process.cwd(), 'data');
-        if (!fs.existsSync(leadsDir)) {
-          fs.mkdirSync(leadsDir, { recursive: true });
-        }
-        const leadsFile = path.join(leadsDir, 'leads.json');
-        let leads = [];
-        if (fs.existsSync(leadsFile)) {
-          try {
-            leads = JSON.parse(fs.readFileSync(leadsFile, 'utf8'));
-          } catch {
-            leads = [];
-          }
-        }
-        leads.push({
+      const detectedEmail = emailMatch[0];
+      const priorQuestions = Array.isArray(history)
+        ? history.filter((h) => h.role === 'user').map((h) => h.text)
+        : [];
+
+      after(async () => {
+        const persisted = await saveLead({
           timestamp: new Date().toISOString(),
-          email: emailMatch[0],
-          rawMessage: message,
+          email: detectedEmail,
+          name: 'Detected in chat',
+          message,
         });
-        fs.writeFileSync(leadsFile, JSON.stringify(leads, null, 2), 'utf8');
+        if (!persisted.ok) {
+          console.error('Lead auto-save failed:', persisted.error);
+        }
 
-        // Extract prior user questions to provide full context in notification
-        const priorQuestions = Array.isArray(history)
-          ? history.filter((h) => h.role === 'user').map((h) => h.text)
-          : [];
-
-        // Trigger real-time alert (Email via Resend). Best-effort: the chat reply
-        // must survive a notification failure, but the failure is logged loudly
-        // instead of being swallowed (P0-02).
-        sendNotification({
+        const notification = await sendNotification({
           title: 'Recruiter Contact Detected in Chat!',
-          contact: emailMatch[0],
+          contact: detectedEmail,
           message,
           recentQuestions: [...priorQuestions, message],
-        })
-          .then((result) => {
-            if (!result.ok) {
-              console.error(
-                'Recruiter notification was not delivered:',
-                result.error
-              );
-            }
-          })
-          .catch((err) => console.error('Notification dispatch failed:', err));
-      } catch (leadErr) {
-        console.error('Lead auto-save error:', leadErr);
-      }
+        });
+        if (!notification.ok) {
+          console.error(
+            'Recruiter notification was not delivered:',
+            notification.error
+          );
+        }
+      });
     }
 
-    // Always log the user question for analytics & review
-    logInteraction({
-      timestamp: new Date().toISOString(),
-      userMessage: message,
-      recruiterEmail: emailMatch ? emailMatch[0] : undefined,
-    });
+    // Always log the user question for analytics & review — off the response path.
+    const interactionTimestamp = new Date().toISOString();
+    const recruiterEmail = emailMatch ? emailMatch[0] : undefined;
+    after(() =>
+      logInteraction({
+        timestamp: interactionTimestamp,
+        userMessage: message,
+        recruiterEmail,
+      })
+    );
 
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({
