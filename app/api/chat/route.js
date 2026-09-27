@@ -81,13 +81,24 @@ export async function POST(req) {
           ? history.filter((h) => h.role === 'user').map((h) => h.text)
           : [];
 
-        // Trigger real-time alert (Email via Resend)
+        // Trigger real-time alert (Email via Resend). Best-effort: the chat reply
+        // must survive a notification failure, but the failure is logged loudly
+        // instead of being swallowed (P0-02).
         sendNotification({
           title: 'Recruiter Contact Detected in Chat!',
           contact: emailMatch[0],
           message,
           recentQuestions: [...priorQuestions, message],
-        }).catch((err) => console.error('Notification dispatch failed:', err));
+        })
+          .then((result) => {
+            if (!result.ok) {
+              console.error(
+                'Recruiter notification was not delivered:',
+                result.error
+              );
+            }
+          })
+          .catch((err) => console.error('Notification dispatch failed:', err));
       } catch (leadErr) {
         console.error('Lead auto-save error:', leadErr);
       }
