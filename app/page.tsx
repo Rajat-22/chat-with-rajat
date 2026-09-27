@@ -56,7 +56,18 @@ export default function Home() {
         }),
       });
 
-      if (!res.ok) throw new Error("Failed to send note");
+      if (!res.ok) {
+        // Surface the server's own message — it distinguishes a rate limit
+        // (429) from a delivery failure (503) and points at the direct email.
+        let serverMessage = "Failed to send note";
+        try {
+          const errData = await res.json();
+          serverMessage = errData.error || serverMessage;
+        } catch {
+          // Non-JSON error response; keep the generic message.
+        }
+        throw new Error(serverMessage);
+      }
 
       setIsContactModalOpen(false);
       setLeadEmail("");
@@ -70,8 +81,13 @@ export default function Home() {
           text: `🎉 **Thank you, ${leadName || "there"}!** Your message has been directly recorded for Rajat. He will review your note and contact you at **${leadEmail}** shortly!`,
         },
       ]);
-    } catch {
-      alert("Could not record note. You can also reach Rajat directly at rajatsharma221098@gmail.com.");
+    } catch (error) {
+      // P3-28 replaces this blocking alert with an inline bubble.
+      alert(
+        error instanceof Error && error.message
+          ? `${error.message}\n\nYou can also reach Rajat directly at rajatsharma221098@gmail.com.`
+          : "Could not record note. You can also reach Rajat directly at rajatsharma221098@gmail.com.",
+      );
     } finally {
       setLeadSubmitting(false);
     }

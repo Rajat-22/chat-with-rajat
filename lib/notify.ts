@@ -1,5 +1,4 @@
-import fs from "fs";
-import path from "path";
+import { saveInteraction, type StoredInteraction } from "./store";
 
 export interface ChatInteraction {
   timestamp: string;
@@ -9,33 +8,19 @@ export interface ChatInteraction {
 }
 
 /**
- * Log all user interactions into data/conversations.json
+ * Logs a chat interaction.
+ *
+ * Persistence is delegated to the store so this no longer does a
+ * read-modify-write of a whole JSON file (P2-18) and never pretends to have
+ * saved something it dropped (P0-01).
  */
-export function logInteraction(entry: ChatInteraction) {
-  try {
-    const dataDir = path.join(process.cwd(), "data");
-    if (!fs.existsSync(dataDir)) {
-      fs.mkdirSync(dataDir, { recursive: true });
-    }
-
-    const convFile = path.join(dataDir, "conversations.json");
-    let conversations: ChatInteraction[] = [];
-    if (fs.existsSync(convFile)) {
-      try {
-        conversations = JSON.parse(fs.readFileSync(convFile, "utf8"));
-      } catch {
-        conversations = [];
-      }
-    }
-
-    conversations.push(entry);
-    // Keep last 500 interactions to prevent unbounded file size
-    if (conversations.length > 500) {
-      conversations = conversations.slice(-500);
-    }
-    fs.writeFileSync(convFile, JSON.stringify(conversations, null, 2), "utf8");
-  } catch (err) {
-    console.error("Failed to log interaction:", err);
+export async function logInteraction(entry: ChatInteraction): Promise<void> {
+  const result = await saveInteraction(entry as StoredInteraction);
+  if (!result.ok) {
+    console.error(
+      "Failed to persist chat interaction:",
+      result.error ?? "unknown error",
+    );
   }
 }
 
