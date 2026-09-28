@@ -3,9 +3,23 @@ import { useState, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 
 interface Message {
+  /** Stable identity — never use the array index as a key or selector (P1-09). */
+  id: string;
   role: "user" | "ai";
   text: string;
 }
+
+const createMessage = (role: Message["role"], text: string): Message => ({
+  id: crypto.randomUUID(),
+  role,
+  text,
+});
+
+const WELCOME_MESSAGE =
+  "👋 Hi! I'm Rajat's AI portfolio assistant.\n\nAsk me anything about his work at **Bold Technology** or **Sopra Steria**, his featured **projects**, **skills**, or how to get in touch!";
+
+const RESET_MESSAGE =
+  "👋 Chat reset! Ask me anything about Rajat's skills, experience, or projects.";
 
 const SUGGESTED_QUESTIONS = [
   "🏢 Role at Bold Technology",
@@ -17,27 +31,62 @@ const SUGGESTED_QUESTIONS = [
 
 export default function Home() {
   const [messages, setMessages] = useState<Message[]>([
-    {
-      role: "ai",
-      text: "👋 Hi! I'm Rajat's AI portfolio assistant.\n\nAsk me anything about his work at **Bold Technology** or **Sopra Steria**, his featured **projects**, **skills**, or how to get in touch!",
-    },
+    createMessage("ai", WELCOME_MESSAGE),
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  // P1-07: the "thinking" indicator is driven by this flag, not by inspecting
+  // message text — the empty AI placeholder made the old text check useless.
+  const [hasReceivedFirstChunk, setHasReceivedFirstChunk] = useState(false);
+  const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
   const [leadEmail, setLeadEmail] = useState("");
   const [leadName, setLeadName] = useState("");
   const [leadMessage, setLeadMessage] = useState("");
   const [leadSubmitting, setLeadSubmitting] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  // P2-21: the scrollable feed element, used to detect whether the reader is
+  // already at the bottom before auto-scrolling.
+  const scrollContainerRef = useRef<HTMLElement>(null);
+  // P1-16: keep the timer id so it can be cleared on unmount / on re-copy.
+  const copyResetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // P2-21: one scroll per animation frame instead of one per streamed chunk.
+  const scrollFrameRef = useRef<number | null>(null);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
+  // P1-16: clear the pending copy timer and any queued scroll frame on unmount,
+  // so React never sees a state update after the component is gone.
   useEffect(() => {
-    scrollToBottom();
+    return () => {
+      if (copyResetTimeoutRef.current) clearTimeout(copyResetTimeoutRef.current);
+      if (scrollFrameRef.current !== null) cancelAnimationFrame(scrollFrameRef.current);
+    };
+  }, []);
+
+  /**
+   * P2-21: a smooth scroll on every streamed chunk restarts the animation
+   * dozens of times per answer. Instead:
+   *   - only scroll when the reader is already near the bottom, so someone who
+   *     scrolled up to re-read is never yanked back down, and
+   *   - coalesce bursts of chunks into a single scroll per animation frame.
+   */
+  useEffect(() => {
+    // P1-16: nothing to scroll on the initial hero render.
+    if (messages.length <= 1 && !loading) return;
+
+    if (scrollFrameRef.current !== null) return;
+
+    scrollFrameRef.current = requestAnimationFrame(() => {
+      scrollFrameRef.current = null;
+
+      const scroller = scrollContainerRef.current;
+      const nearBottom =
+        !scroller ||
+        scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight < 160;
+
+      if (nearBottom) {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      }
+    });
   }, [messages, loading]);
 
   const handleLeadSubmit = async (e: React.SyntheticEvent) => {
@@ -76,10 +125,10 @@ export default function Home() {
 
       setMessages((prev) => [
         ...prev,
-        {
-          role: "ai",
-          text: `🎉 **Thank you, ${leadName || "there"}!** Your message has been directly recorded for Rajat. He will review your note and contact you at **${leadEmail}** shortly!`,
-        },
+        createMessage(
+          "ai",
+          `🎉 **Thank you, ${leadName || "there"}!** Your message has been directly recorded for Rajat. He will review your note and contact you at **${leadEmail}** shortly!`,
+        ),
       ]);
     } catch (error) {
       // P3-28 replaces this blocking alert with an inline bubble.
@@ -93,11 +142,23 @@ export default function Home() {
     }
   };
 
-  const copyToClipboard = async (text: string, idx: number) => {
+  /**
+   * P1-09: keyed by message id, so the confirmation can never drift onto the
+   * wrong bubble as messages are appended during streaming.
+   * P1-16: the previous timer is cleared before starting a new one, and the id
+   * is stored so unmount can clear it too.
+   */
+  const copyToClipboard = async (text: string, messageId: string) => {
     try {
       await navigator.clipboard.writeText(text);
-      setCopiedIndex(idx);
-      setTimeout(() => setCopiedIndex(null), 2000);
+
+      if (copyResetTimeoutRef.current) clearTimeout(copyResetTimeoutRef.current);
+
+      setCopiedMessageId(messageId);
+      copyResetTimeoutRef.current = setTimeout(() => {
+        setCopiedMessageId(null);
+        copyResetTimeoutRef.current = null;
+      }, 2000);
     } catch {
       console.error("Failed to copy");
     }
@@ -106,11 +167,13 @@ export default function Home() {
   const sendQuery = async (queryText: string) => {
     if (!queryText.trim() || loading) return;
 
-    const userMsg: Message = { role: "user", text: queryText };
+    const userMsg = createMessage("user", queryText);
     const updatedMessages = [...messages, userMsg];
     setMessages(updatedMessages);
     setInput("");
     setLoading(true);
+    // P1-07: reset before each turn so the thinking state is shown again.
+    setHasReceivedFirstChunk(false);
 
     try {
       const res = await fetch("/api/chat", {
@@ -137,8 +200,14 @@ export default function Home() {
         throw new Error("No response body received");
       }
 
-      // Add placeholder AI message that will receive chunks
-      setMessages((prev) => [...prev, { role: "ai", text: "" }]);
+      // Add placeholder AI message that will receive chunks. It gets a stable id
+      // up front so the streaming cursor and copy state can target it by
+      // identity rather than by array position (P1-08 / P1-09).
+      const assistantMessageId = crypto.randomUUID();
+      setMessages((prev) => [
+        ...prev,
+        { id: assistantMessageId, role: "ai", text: "" },
+      ]);
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
@@ -149,10 +218,13 @@ export default function Home() {
 
         const chunk = decoder.decode(value, { stream: true });
         if (chunk) {
+          // P1-07: the first byte is what ends the thinking state.
+          setHasReceivedFirstChunk(true);
+
           setMessages((prev) => {
             const newMsgs = [...prev];
             const lastIdx = newMsgs.length - 1;
-            if (lastIdx >= 0 && newMsgs[lastIdx].role === "ai") {
+            if (lastIdx >= 0 && newMsgs[lastIdx].id === assistantMessageId) {
               newMsgs[lastIdx] = {
                 ...newMsgs[lastIdx],
                 text: newMsgs[lastIdx].text + chunk,
@@ -169,13 +241,7 @@ export default function Home() {
           ? err.message
           : "⚠️ Connection interrupted. Please check your network or try again.";
 
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "ai",
-          text: displayMsg,
-        },
-      ]);
+      setMessages((prev) => [...prev, createMessage("ai", displayMsg)]);
     } finally {
       setLoading(false);
     }
@@ -187,12 +253,7 @@ export default function Home() {
   };
 
   const clearChat = () => {
-    setMessages([
-      {
-        role: "ai",
-        text: "👋 Chat reset! Ask me anything about Rajat's skills, experience, or projects.",
-      },
-    ]);
+    setMessages([createMessage("ai", RESET_MESSAGE)]);
   };
 
   return (
@@ -263,6 +324,7 @@ export default function Home() {
 
       {/* Main Conversation Stream Area */}
       <main
+        ref={scrollContainerRef}
         className={`flex-1 w-full max-w-3xl mx-auto px-4 sm:px-6 py-6 pb-44 overflow-y-auto z-10 flex flex-col gap-6 ${
           messages.length <= 1 ? "justify-center my-auto" : ""
         }`}
@@ -365,15 +427,18 @@ export default function Home() {
         ) : null}
 
         {/* Message Feed (Render conversational turns once interaction starts) */}
-        {messages.slice(messages.length <= 1 ? 1 : 0).map((msg, index) => {
+        {messages.slice(messages.length <= 1 ? 1 : 0).map((msg) => {
           if (msg.role === "ai" && !msg.text) return null;
 
+          // P1-08: compare against the real last message by id. The previous
+          // check compared an index from the *sliced* array against
+          // `messages.length - 1`, so the cursor could never attach correctly.
           const isLatestStreamingMessage =
-            loading && index === messages.length - 1 && msg.role === "ai";
+            loading && msg.id === messages[messages.length - 1]?.id;
 
           return (
             <div
-              key={index}
+              key={msg.id}
               className={`group relative flex flex-col w-full ${
                 msg.role === "user" ? "items-end" : "items-start"
               }`}
@@ -444,28 +509,33 @@ export default function Home() {
               {msg.role === "ai" && msg.text && !loading && (
                 <button
                   type="button"
-                  onClick={() => copyToClipboard(msg.text, index)}
+                  onClick={() => copyToClipboard(msg.text, msg.id)}
                   className="mt-1.5 text-[11px] text-slate-500 hover:text-cyan-300 transition-colors opacity-0 group-hover:opacity-100 flex items-center gap-1 cursor-pointer self-start pl-2"
                 >
-                  {copiedIndex === index ? "✓ Copied to clipboard" : "Copy response"}
+                  {copiedMessageId === msg.id
+                    ? "✓ Copied to clipboard"
+                    : "Copy response"}
                 </button>
               )}
             </div>
           );
         })}
 
-        {loading &&
-          (!messages.length ||
-            messages[messages.length - 1]?.role !== "ai" ||
-            !messages[messages.length - 1]?.text) && (
-            <div className="flex items-center gap-3 text-slate-300 text-xs self-start bg-white/[0.04] backdrop-blur-xl border border-white/10 px-4 py-3 rounded-2xl shadow-lg ring-1 ring-white/5">
-              <span className="flex h-2.5 w-2.5 relative">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-cyan-500" />
-              </span>
-              Rajat&apos;s AI is thinking...
-            </div>
-          )}
+        {/*
+          P1-07: driven by state, not by inspecting message text. The old guard
+          looked for a last message with no text — but an empty AI placeholder is
+          pushed the moment streaming begins, and that placeholder is also hidden
+          during render, so the indicator could never appear.
+        */}
+        {loading && !hasReceivedFirstChunk && (
+          <div className="flex items-center gap-3 text-slate-300 text-xs self-start bg-white/[0.04] backdrop-blur-xl border border-white/10 px-4 py-3 rounded-2xl shadow-lg ring-1 ring-white/5">
+            <span className="flex h-2.5 w-2.5 relative">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-cyan-500" />
+            </span>
+            Rajat&apos;s AI is thinking...
+          </div>
+        )}
         <div ref={messagesEndRef} />
       </main>
 
