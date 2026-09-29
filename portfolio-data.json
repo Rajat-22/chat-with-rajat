@@ -132,6 +132,18 @@
             ],
             "description": "A smooth and responsive food ordering experience designed to make ordering quick and effortless. Explore a variety of dishes, add your favorites to the cart, and place your order with just a few simple steps.",
             "live_url": "https://byte-bitez.vercel.app/"
+        },
+        {
+            "name": "Escape ROute",
+            "role": "Full Stack Developer",
+            "technologies": [
+                "Next.js 16",
+                "React 19",
+                "JavaScript",
+                "Tailwind CSS v4"
+            ],
+            "description": "Itineary planning web application that allows users to create, customize, and share travel itineraries. Features include real-time collaboration, and integration with travel APIs for recommendations.",
+            "live_url": "https://escape-route-beryl.vercel.app/"
         }
     ],
     "experience": [
